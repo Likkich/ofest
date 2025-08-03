@@ -17,8 +17,9 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      user-select: none; /* Отключаем выделение текста */
+      user-select: none;
     }
+
     h1 {
       text-align: center;
       color: #1a73e8;
@@ -31,36 +32,31 @@
       background-color: rgba(0, 0, 0, 0.7);
       padding: 10px 0;
     }
+
     #video-container {
       width: 100%;
       max-width: 400px;
-      height: calc(100vh - 60px); /* Учитываем заголовок */
+      height: calc(100vh - 60px);
       position: relative;
       display: flex;
       justify-content: center;
       align-items: center;
-      touch-action: pan-y; /* Разрешаем свайпы только по Y */
+      touch-action: pan-y;
     }
+
     video {
       width: 100%;
       height: 100%;
       object-fit: cover;
       border-radius: 10px;
-      cursor: pointer; /* Курсор для клика */
-      transition: transform 0.3s ease, opacity 0.3s ease; /* Анимация */
+      cursor: pointer;
+      transition: transform 0.3s ease, opacity 0.3s ease;
     }
-    video.slide-out-up {
-      transform: translateY(-100%);
-      opacity: 0;
+
+    video.dragging {
+      transition: none !important;
     }
-    video.slide-out-down {
-      transform: translateY(100%);
-      opacity: 0;
-    }
-    video.slide-in {
-      transform: translateY(0);
-      opacity: 1;
-    }
+
     #splash-screen {
       position: fixed;
       top: 0;
@@ -76,10 +72,12 @@
       opacity: 1;
       transition: opacity 0.5s ease;
     }
+
     #splash-screen.hidden {
       opacity: 0;
       pointer-events: none;
     }
+
     #splash-screen h2 {
       font-size: 28px;
       color: #fff;
@@ -98,151 +96,133 @@
   </div>
 
   <script>
-    // Инициализация Telegram Web App
     const tg = window.Telegram.WebApp;
     tg.ready();
-    tg.expand(); // Разворачиваем на весь экран
+    tg.expand();
 
-    // Splash screen
     const splashScreen = document.getElementById('splash-screen');
     const splashText = document.getElementById('splash-text');
     const user = tg.initDataUnsafe.user;
     splashText.innerText = user ? `Привет, ${user.first_name}! Добро пожаловать в Ofest!` : 'Привет, гость! Добро пожаловать в Ofest!';
     setTimeout(() => {
       splashScreen.classList.add('hidden');
-    }, 2000); // Скрываем через 2 секунды
+    }, 2000);
 
-    // Список видео (тестовые, с открытой лицензией)
     const videos = [
-      {
-        title: 'Видео 1',
-        url: 'https://www.w3schools.com/html/mov_bbb.mp4'
-      },
-      {
-        title: 'Видео 2',
-        url: 'https://archive.org/download/ElephantsDream/ed_1024_512kb.mp4'
-      },
-      {
-        title: 'Видео 3',
-        url: 'https://www.w3schools.com/html/mov_bbb.mp4'
-      }
+      { title: 'Видео 1', url: 'https://www.w3schools.com/html/mov_bbb.mp4' },
+      { title: 'Видео 2', url: 'https://archive.org/download/ElephantsDream/ed_1024_512kb.mp4' },
+      { title: 'Видео 3', url: 'https://www.w3schools.com/html/mov_bbb.mp4' }
     ];
 
     let currentVideoIndex = 0;
     const videoPlayer = document.getElementById('video-player');
     const videoContainer = document.getElementById('video-container');
 
-    // Загрузка видео с анимацией
     function loadVideo(direction) {
-      videoPlayer.pause(); // Останавливаем текущее видео
-      if (direction === 'up') {
-        videoPlayer.classList.add('slide-out-up');
-      } else if (direction === 'down') {
-        videoPlayer.classList.add('slide-out-down');
-      }
+      videoPlayer.pause();
+      videoPlayer.classList.remove('dragging');
+      videoPlayer.style.transition = '';
+      videoPlayer.style.transform = '';
+
       setTimeout(() => {
-        videoPlayer.classList.remove('slide-out-up', 'slide-out-down', 'slide-in');
         videoPlayer.src = videos[currentVideoIndex].url;
         videoPlayer.load();
-        videoPlayer.classList.add('slide-in');
         videoPlayer.oncanplay = () => {
-          videoPlayer.play().catch((err) => {
-            console.error('Ошибка воспроизведения:', err);
-          });
+          videoPlayer.play().catch((err) => console.error('Ошибка воспроизведения:', err));
         };
-      }, 300); // Ждём завершения анимации
+      }, 50);
     }
 
-    // Следующее видео
     function nextVideo() {
       currentVideoIndex = (currentVideoIndex + 1) % videos.length;
       loadVideo('up');
     }
 
-    // Предыдущее видео
     function prevVideo() {
       currentVideoIndex = (currentVideoIndex - 1 + videos.length) % videos.length;
       loadVideo('down');
     }
 
-    // Обработка свайпов (мобильные устройства)
-    let touchStartY = 0;
-    let touchEndY = 0;
+    // Swipe/drag variables
+    let startY = 0;
+    let currentY = 0;
     let isDragging = false;
 
-    videoContainer.addEventListener('touchstart', (e) => {
+    function startDrag(y) {
+      startY = y;
       isDragging = true;
-      touchStartY = e.changedTouches[0].screenY;
-    });
+      videoPlayer.classList.add('dragging');
+    }
 
-    videoContainer.addEventListener('touchmove', (e) => {
-      if (isDragging) {
-        touchEndY = e.changedTouches[0].screenY;
+    function moveDrag(y) {
+      if (!isDragging) return;
+      currentY = y - startY;
+      videoPlayer.style.transform = `translateY(${currentY}px)`;
+    }
+
+    function endDrag() {
+      if (!isDragging) return;
+      isDragging = false;
+      videoPlayer.classList.remove('dragging');
+
+      if (currentY < -100) {
+        // Свайп вверх
+        videoPlayer.style.transition = 'transform 0.3s ease';
+        videoPlayer.style.transform = 'translateY(-100%)';
+        setTimeout(() => {
+          videoPlayer.style.transform = '';
+          nextVideo();
+        }, 300);
+      } else if (currentY > 100) {
+        // Свайп вниз
+        videoPlayer.style.transition = 'transform 0.3s ease';
+        videoPlayer.style.transform = 'translateY(100%)';
+        setTimeout(() => {
+          videoPlayer.style.transform = '';
+          prevVideo();
+        }, 300);
+      } else {
+        // Вернуть обратно
+        videoPlayer.style.transition = 'transform 0.3s ease';
+        videoPlayer.style.transform = 'translateY(0)';
       }
-    });
 
-    videoContainer.addEventListener('touchend', (e) => {
-      if (isDragging) {
-        touchEndY = e.changedTouches[0].screenY;
-        if (touchEndY < touchStartY - 50) {
-          nextVideo(); // Свайп вверх
-        } else if (touchEndY > touchStartY + 50) {
-          prevVideo(); // Свайп вниз
-        }
-        isDragging = false;
-      }
-    });
+      currentY = 0;
+    }
 
-    // Обработка перетаскивания мышью (ПК)
-    let mouseStartY = 0;
-    let mouseEndY = 0;
+    // Touch events
+    videoContainer.addEventListener('touchstart', (e) => startDrag(e.touches[0].clientY));
+    videoContainer.addEventListener('touchmove', (e) => moveDrag(e.touches[0].clientY));
+    videoContainer.addEventListener('touchend', endDrag);
 
+    // Mouse events
     videoContainer.addEventListener('mousedown', (e) => {
-      e.preventDefault(); // Предотвращаем стандартное выделение
-      isDragging = true;
-      mouseStartY = e.clientY;
+      e.preventDefault();
+      startDrag(e.clientY);
     });
-
     videoContainer.addEventListener('mousemove', (e) => {
-      if (isDragging) {
-        mouseEndY = e.clientY;
-      }
+      if (isDragging) moveDrag(e.clientY);
     });
-
-    videoContainer.addEventListener('mouseup', (e) => {
-      if (isDragging) {
-        if (mouseEndY < mouseStartY - 50) {
-          nextVideo(); // Перетаскивание вверх
-        } else if (mouseEndY > mouseStartY + 50) {
-          prevVideo(); // Перетаскивание вниз
-        }
-        isDragging = false;
-      }
-    });
-
+    videoContainer.addEventListener('mouseup', endDrag);
     videoContainer.addEventListener('mouseleave', () => {
-      isDragging = false; // Отменяем перетаскивание
+      if (isDragging) endDrag();
     });
 
-    // Обработка клика по видео (плей/пауза)
+    // Пауза/плей по клику
     videoPlayer.addEventListener('click', (e) => {
-      e.stopPropagation(); // Предотвращаем срабатывание других событий
+      e.stopPropagation();
       if (videoPlayer.paused) {
-        videoPlayer.play().catch((err) => {
-          console.error('Ошибка воспроизведения:', err);
-        });
+        videoPlayer.play().catch((err) => console.error('Ошибка воспроизведения:', err));
       } else {
         videoPlayer.pause();
       }
     });
 
-    // Загружаем первое видео
-    loadVideo(null);
+    // Загрузка первого видео
+    loadVideo();
 
-    // Кнопка закрытия
-    tg.MainButton.setText('Закрыть').show().onClick(() => {
-      tg.close();
-    });
+    // Telegram кнопка закрытия
+    tg.MainButton.setText('Закрыть').show().onClick(() => tg.close());
   </script>
 </body>
 </html>
