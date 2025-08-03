@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Мой Кинотеатр</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f0f0f0;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #1a73e8;
+    }
+    .movie-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+      gap: 20px;
+    }
+    .movie-card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      cursor: pointer;
+      text-align: center;
+    }
+    .movie-card img {
+      width: 100%;
+      border-radius: 8px;
+    }
+    .movie-card h3 {
+      font-size: 16px;
+      margin: 10px 0;
+    }
+    #player-container {
+      display: none;
+      margin-top: 20px;
+      text-align: center;
+    }
+    video {
+      width: 100%;
+      max-width: 600px;
+      border-radius: 8px;
+    }
+    .back-button {
+      background-color: #1a73e8;
+      color: white;
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Мой Кинотеатр</h1>
+  <div id="user-info"></div>
+  <div id="movie-list" class="movie-list"></div>
+  <div id="player-container">
+    <video id="video-player" controls></video>
+    <button class="back-button" onclick="showMovieList()">Назад к списку</button>
+  </div>
+
+  <script>
+    // Инициализация Telegram Web App
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand(); // Разворачиваем приложение на весь экран
+
+    // Показываем имя пользователя из Telegram
+    const user = tg.initDataUnsafe.user;
+    const userInfo = document.getElementById('user-info');
+    if (user) {
+      userInfo.innerText = `Привет, ${user.first_name}!`;
+    } else {
+      userInfo.innerText = 'Привет, гость!';
+    }
+
+    // Список фильмов (заглушка, можно заменить на свои данные)
+    const movies = [
+      {
+        title: 'Тестовый фильм 1',
+        thumbnail: 'https://via.placeholder.com/200x300?text=Фильм+1',
+        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' // Тестовое видео
+      },
+      {
+        title: 'Тестовый фильм 2',
+        thumbnail: 'https://via.placeholder.com/200x300?text=Фильм+2',
+        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' // Тестовое видео
+      }
+    ];
+
+    // Отображаем список фильмов
+    const movieList = document.getElementById('movie-list');
+    const playerContainer = document.getElementById('player-container');
+    const videoPlayer = document.getElementById('video-player');
+
+    function showMovieList() {
+      movieList.style.display = 'grid';
+      playerContainer.style.display = 'none';
+      movies.forEach(movie => {
+        const movieCard = document.createElement('div');
+        movieCard.className = 'movie-card';
+        movieCard.innerHTML = `
+          <img src="${movie.thumbnail}" alt="${movie.title}">
+          <h3>${movie.title}</h3>
+        `;
+        movieCard.onclick = () => playMovie(movie.videoUrl);
+        movieList.appendChild(movieCard);
+      });
+    }
+
+    // Воспроизведение видео
+    function playMovie(videoUrl) {
+      movieList.style.display = 'none';
+      playerContainer.style.display = 'block';
+      videoPlayer.src = videoUrl;
+      videoPlayer.play();
+    }
+
+    // Инициализация приложения
+    showMovieList();
+
+    // Закрытие приложения через кнопку Telegram
+    tg.MainButton.setText('Закрыть').show().onClick(() => {
+      tg.close();
+    });
+  </script>
+</body>
+</html>
