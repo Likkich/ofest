@@ -1,113 +1,94 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Ofest Music Mini App</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Ofest Music</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
-    html, body {
+    body {
       margin: 0;
       padding: 0;
-      height: 100%;
-      overflow: hidden;
-      font-family: sans-serif;
-      background: black;
+      background-color: #000;
       color: white;
-    }
-    #track-card {
-      width: 100%;
-      height: 100%;
-      position: relative;
+      font-family: sans-serif;
       display: flex;
-      align-items: flex-end;
-      justify-content: flex-start;
       flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      text-align: center;
+      overflow: hidden;
     }
     #cover {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      position: absolute;
-      top: 0;
-      left: 0;
-      z-index: 1;
-      filter: brightness(0.7);
+      width: 80%;
+      max-width: 300px;
+      border-radius: 15px;
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
+      margin-bottom: 20px;
     }
-    #info {
-      position: relative;
-      z-index: 2;
-      margin: 20px;
-      text-align: left;
-    }
-    #info p {
-      margin: 5px 0;
-      font-size: 18px;
-    }
-    #info a {
-      color: #1DB954;
-      text-decoration: none;
+    #title {
+      font-size: 20px;
       font-weight: bold;
+      margin-bottom: 5px;
+    }
+    #artist {
+      font-size: 16px;
+      margin-bottom: 20px;
+      color: #ccc;
+    }
+    #player {
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      background: #1db954;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #1aa34a;
     }
   </style>
 </head>
 <body>
-  <div id="track-card">
-    <img id="cover" src="" alt="Cover">
-    <div id="info">
-      <p id="track-title"></p>
-      <p id="track-artist"></p>
-      <a id="full-link" href="#" target="_blank">Слушать полностью</a>
-    </div>
-    <audio id="audio-preview"></audio>
-  </div>
+  <img id="cover" src="" alt="Обложка">
+  <div id="title"></div>
+  <div id="artist"></div>
+  <audio id="player" controls autoplay></audio>
+  <button id="full">Слушать полностью</button>
 
   <script>
-    let videos = [];
-    let currentVideoIndex = 0;
+    const tg = window.Telegram.WebApp;
+    tg.ready();
+    tg.expand();
 
-    async function fetchTracks() {
-      try {
-        const resp = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent('https://api.deezer.com/search?q=lofi&limit=10'));
-        const data = await resp.json();
-        return data.data.map(item => ({
-          title: item.title_short,
-          artist: item.artist.name,
-          cover: item.album.cover_big,
-          url: item.preview,
-          fullLink: item.link
-        }));
-      } catch (e) {
-        console.error('Ошибка загрузки треков:', e);
-        return [];
-      }
+    const cover = document.getElementById('cover');
+    const title = document.getElementById('title');
+    const artist = document.getElementById('artist');
+    const player = document.getElementById('player');
+    const fullBtn = document.getElementById('full');
+
+    async function getRandomTrack() {
+      const response = await fetch('https://api.deezer.com/search?q=lofi&limit=10');
+      const proxy = await fetch(`https://cors-anywhere.herokuapp.com/https://api.deezer.com/search?q=lofi&limit=10`);
+      const data = await proxy.json();
+      const tracks = data.data;
+      const track = tracks[Math.floor(Math.random() * tracks.length)];
+
+      title.textContent = track.title;
+      artist.textContent = track.artist.name;
+      cover.src = track.album.cover_big;
+      player.src = track.preview;
+      fullBtn.onclick = () => window.open(track.link, '_blank');
     }
 
-    function loadTrack() {
-      if (!videos.length) return;
-      const track = videos[currentVideoIndex];
-      document.getElementById('cover').src = track.cover;
-      document.getElementById('track-title').innerText = track.title;
-      document.getElementById('track-artist').innerText = track.artist;
-      document.getElementById('full-link').href = track.fullLink;
-      const audio = document.getElementById('audio-preview');
-      audio.src = track.url;
-      audio.play().catch(console.warn);
-    }
+    getRandomTrack();
 
-    function swipeHandler(e) {
-      const dir = e.deltaY > 0 ? 1 : -1;
-      currentVideoIndex += dir;
-      if (currentVideoIndex < 0) currentVideoIndex = 0;
-      if (currentVideoIndex >= videos.length) currentVideoIndex = videos.length - 1;
-      loadTrack();
-    }
-
-    window.addEventListener('wheel', swipeHandler);
-
-    (async () => {
-      videos = await fetchTracks();
-      if (videos.length) loadTrack();
-    })();
+    tg.MainButton.setText("Закрыть").show().onClick(() => tg.close());
   </script>
 </body>
 </html>
