@@ -47,24 +47,55 @@
       object-fit: cover;
       border-radius: 10px;
       cursor: grab; /* Курсор для перетаскивания */
+      transition: transform 0.3s ease, opacity 0.3s ease; /* Анимация */
     }
     video:active {
       cursor: grabbing;
     }
-    #user-info {
-      font-size: 16px;
+    video.slide-out-up {
+      transform: translateY(-100%);
+      opacity: 0;
+    }
+    video.slide-out-down {
+      transform: translateY(100%);
+      opacity: 0;
+    }
+    video.slide-in {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    #splash-screen {
       position: fixed;
-      bottom: 10px;
-      text-align: center;
+      top: 0;
+      left: 0;
       width: 100%;
-      background-color: rgba(0, 0, 0, 0.7);
-      padding: 5px 0;
+      height: 100vh;
+      background-color: #1a73e8;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 20;
+      opacity: 1;
+      transition: opacity 0.5s ease;
+    }
+    #splash-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    #splash-screen h2 {
+      font-size: 28px;
+      color: #fff;
+      text-align: center;
+      margin: 0 20px;
     }
   </style>
 </head>
 <body>
+  <div id="splash-screen">
+    <h2 id="splash-text"></h2>
+  </div>
   <h1>Ofest</h1>
-  <div id="user-info"></div>
   <div id="video-container">
     <video id="video-player" controls autoplay muted></video>
   </div>
@@ -75,14 +106,14 @@
     tg.ready();
     tg.expand(); // Разворачиваем на весь экран
 
-    // Показываем имя пользователя
+    // Splash screen
+    const splashScreen = document.getElementById('splash-screen');
+    const splashText = document.getElementById('splash-text');
     const user = tg.initDataUnsafe.user;
-    const userInfo = document.getElementById('user-info');
-    if (user) {
-      userInfo.innerText = `Привет, ${user.first_name}!`;
-    } else {
-      userInfo.innerText = 'Привет, гость!';
-    }
+    splashText.innerText = user ? `Привет, ${user.first_name}! Добро пожаловать в Ofest!` : 'Привет, гость! Добро пожаловать в Ofest!';
+    setTimeout(() => {
+      splashScreen.classList.add('hidden');
+    }, 2000); // Скрываем через 2 секунды
 
     // Список видео (тестовые, с открытой лицензией)
     const videos = [
@@ -104,28 +135,37 @@
     const videoPlayer = document.getElementById('video-player');
     const videoContainer = document.getElementById('video-container');
 
-    // Загрузка видео с ожиданием готовности
-    function loadVideo() {
+    // Загрузка видео с анимацией
+    function loadVideo(direction) {
       videoPlayer.pause(); // Останавливаем текущее видео
-      videoPlayer.src = videos[currentVideoIndex].url;
-      videoPlayer.load();
-      videoPlayer.oncanplay = () => {
-        videoPlayer.play().catch((err) => {
-          console.error('Ошибка воспроизведения:', err);
-        });
-      };
+      if (direction === 'up') {
+        videoPlayer.classList.add('slide-out-up');
+      } else if (direction === 'down') {
+        videoPlayer.classList.add('slide-out-down');
+      }
+      setTimeout(() => {
+        videoPlayer.src = videos[currentVideoIndex].url;
+        videoPlayer.load();
+        videoPlayer.classList.remove('slide-out-up', 'slide-out-down');
+        videoPlayer.classList.add('slide-in');
+        videoPlayer.oncanplay = () => {
+          videoPlayer.play().catch((err) => {
+            console.error('Ошибка воспроизведения:', err);
+          });
+        };
+      }, 300); // Ждём завершения анимации
     }
 
     // Следующее видео
     function nextVideo() {
       currentVideoIndex = (currentVideoIndex + 1) % videos.length;
-      loadVideo();
+      loadVideo('up');
     }
 
     // Предыдущее видео
     function prevVideo() {
       currentVideoIndex = (currentVideoIndex - 1 + videos.length) % videos.length;
-      loadVideo();
+      loadVideo('down');
     }
 
     // Обработка свайпов (мобильные устройства)
@@ -173,11 +213,11 @@
     });
 
     videoContainer.addEventListener('mouseleave', () => {
-      isDragging = false; // Отменяем перетаскивание, если мышь покинула контейнер
+      isDragging = false; // Отменяем перетаскивание
     });
 
     // Загружаем первое видео
-    loadVideo();
+    loadVideo(null);
 
     // Кнопка закрытия
     tg.MainButton.setText('Закрыть').show().onClick(() => {
