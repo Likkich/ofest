@@ -3,78 +3,79 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Мой Кинотеатр</title>
+  <title>Ofest</title>
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
       font-family: Arial, sans-serif;
       margin: 0;
-      padding: 20px;
-      background-color: #f0f0f0;
-      color: #333;
+      padding: 0;
+      background-color: #000;
+      color: #fff;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      user-select: none; /* Отключаем выделение текста */
     }
     h1 {
       text-align: center;
       color: #1a73e8;
-    }
-    .movie-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: 20px;
-    }
-    .movie-card {
-      background-color: white;
-      border-radius: 8px;
-      padding: 10px;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-      cursor: pointer;
-      text-align: center;
-    }
-    .movie-card img {
-      width: 100%;
-      border-radius: 8px;
-    }
-    .movie-card h3 {
-      font-size: 16px;
+      font-size: 24px;
       margin: 10px 0;
+      position: fixed;
+      top: 0;
+      width: 100%;
+      z-index: 10;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 10px 0;
     }
-    #player-container {
-      display: none;
-      margin-top: 20px;
-      text-align: center;
+    #video-container {
+      width: 100%;
+      max-width: 400px;
+      height: calc(100vh - 60px); /* Учитываем заголовок */
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      touch-action: pan-y; /* Разрешаем свайпы только по Y */
     }
     video {
       width: 100%;
-      max-width: 600px;
-      border-radius: 8px;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 10px;
+      cursor: grab; /* Курсор для перетаскивания */
     }
-    .back-button {
-      background-color: #1a73e8;
-      color: white;
-      padding: 10px 20px;
-      border: none;
-      border-radius: 5px;
-      cursor: pointer;
-      margin-top: 10px;
+    video:active {
+      cursor: grabbing;
+    }
+    #user-info {
+      font-size: 16px;
+      position: fixed;
+      bottom: 10px;
+      text-align: center;
+      width: 100%;
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 5px 0;
     }
   </style>
 </head>
 <body>
-  <h1>Мой Кинотеатр</h1>
+  <h1>Ofest</h1>
   <div id="user-info"></div>
-  <div id="movie-list" class="movie-list"></div>
-  <div id="player-container">
-    <video id="video-player" controls></video>
-    <button class="back-button" onclick="showMovieList()">Назад к списку</button>
+  <div id="video-container">
+    <video id="video-player" controls autoplay muted></video>
   </div>
 
   <script>
     // Инициализация Telegram Web App
     const tg = window.Telegram.WebApp;
     tg.ready();
-    tg.expand(); // Разворачиваем приложение на весь экран
+    tg.expand(); // Разворачиваем на весь экран
 
-    // Показываем имя пользователя из Telegram
+    // Показываем имя пользователя
     const user = tg.initDataUnsafe.user;
     const userInfo = document.getElementById('user-info');
     if (user) {
@@ -83,52 +84,102 @@
       userInfo.innerText = 'Привет, гость!';
     }
 
-    // Список фильмов (заглушка, можно заменить на свои данные)
-    const movies = [
+    // Список видео (тестовые, с открытой лицензией)
+    const videos = [
       {
-        title: 'Тестовый фильм 1',
-        thumbnail: 'https://via.placeholder.com/200x300?text=Фильм+1',
-        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' // Тестовое видео
+        title: 'Видео 1',
+        url: 'https://www.w3schools.com/html/mov_bbb.mp4'
       },
       {
-        title: 'Тестовый фильм 2',
-        thumbnail: 'https://via.placeholder.com/200x300?text=Фильм+2',
-        videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' // Тестовое видео
+        title: 'Видео 2',
+        url: 'https://archive.org/download/ElephantsDream/ed_1024_512kb.mp4'
+      },
+      {
+        title: 'Видео 3',
+        url: 'https://www.w3schools.com/html/mov_bbb.mp4'
       }
     ];
 
-    // Отображаем список фильмов
-    const movieList = document.getElementById('movie-list');
-    const playerContainer = document.getElementById('player-container');
+    let currentVideoIndex = 0;
     const videoPlayer = document.getElementById('video-player');
+    const videoContainer = document.getElementById('video-container');
 
-    function showMovieList() {
-      movieList.style.display = 'grid';
-      playerContainer.style.display = 'none';
-      movies.forEach(movie => {
-        const movieCard = document.createElement('div');
-        movieCard.className = 'movie-card';
-        movieCard.innerHTML = `
-          <img src="${movie.thumbnail}" alt="${movie.title}">
-          <h3>${movie.title}</h3>
-        `;
-        movieCard.onclick = () => playMovie(movie.videoUrl);
-        movieList.appendChild(movieCard);
-      });
+    // Загрузка видео с ожиданием готовности
+    function loadVideo() {
+      videoPlayer.pause(); // Останавливаем текущее видео
+      videoPlayer.src = videos[currentVideoIndex].url;
+      videoPlayer.load();
+      videoPlayer.oncanplay = () => {
+        videoPlayer.play().catch((err) => {
+          console.error('Ошибка воспроизведения:', err);
+        });
+      };
     }
 
-    // Воспроизведение видео
-    function playMovie(videoUrl) {
-      movieList.style.display = 'none';
-      playerContainer.style.display = 'block';
-      videoPlayer.src = videoUrl;
-      videoPlayer.play();
+    // Следующее видео
+    function nextVideo() {
+      currentVideoIndex = (currentVideoIndex + 1) % videos.length;
+      loadVideo();
     }
 
-    // Инициализация приложения
-    showMovieList();
+    // Предыдущее видео
+    function prevVideo() {
+      currentVideoIndex = (currentVideoIndex - 1 + videos.length) % videos.length;
+      loadVideo();
+    }
 
-    // Закрытие приложения через кнопку Telegram
+    // Обработка свайпов (мобильные устройства)
+    let touchStartY = 0;
+    let touchEndY = 0;
+
+    videoContainer.addEventListener('touchstart', (e) => {
+      touchStartY = e.changedTouches[0].screenY;
+    });
+
+    videoContainer.addEventListener('touchend', (e) => {
+      touchEndY = e.changedTouches[0].screenY;
+      if (touchEndY < touchStartY - 50) {
+        nextVideo(); // Свайп вверх
+      } else if (touchEndY > touchStartY + 50) {
+        prevVideo(); // Свайп вниз
+      }
+    });
+
+    // Обработка перетаскивания мышью (ПК)
+    let isDragging = false;
+    let mouseStartY = 0;
+    let mouseEndY = 0;
+
+    videoContainer.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      mouseStartY = e.clientY;
+    });
+
+    videoContainer.addEventListener('mousemove', (e) => {
+      if (isDragging) {
+        mouseEndY = e.clientY;
+      }
+    });
+
+    videoContainer.addEventListener('mouseup', () => {
+      if (isDragging) {
+        if (mouseEndY < mouseStartY - 50) {
+          nextVideo(); // Перетаскивание вверх
+        } else if (mouseEndY > mouseStartY + 50) {
+          prevVideo(); // Перетаскивание вниз
+        }
+        isDragging = false;
+      }
+    });
+
+    videoContainer.addEventListener('mouseleave', () => {
+      isDragging = false; // Отменяем перетаскивание, если мышь покинула контейнер
+    });
+
+    // Загружаем первое видео
+    loadVideo();
+
+    // Кнопка закрытия
     tg.MainButton.setText('Закрыть').show().onClick(() => {
       tg.close();
     });
