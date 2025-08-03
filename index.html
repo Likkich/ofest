@@ -46,6 +46,52 @@
             font-weight: 500;
             color: #e8f0fe;
         }
+        .warning-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .warning-content {
+            background: #fff;
+            border-radius: 16px;
+            padding: 20px;
+            max-width: 300px;
+            width: calc(100% - 40px);
+            text-align: center;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+            animation: fadeIn 0.3s ease-in;
+        }
+        .warning-content h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #000;
+            margin: 0 0 10px;
+        }
+        .warning-content p {
+            font-size: 14px;
+            color: #333;
+            margin: 0 0 20px;
+        }
+        .warning-content button {
+            background: none;
+            border: none;
+            color: #007aff;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            padding: 10px;
+            transition: opacity 0.2s ease;
+        }
+        .warning-content button:hover {
+            opacity: 0.8;
+        }
         .page {
             display: none;
             padding: 20px;
@@ -157,6 +203,7 @@
             .splash-screen h1 { font-size: 28px; }
             .account-info, .card-info, .extra-info, .new-card, .settings { max-width: 100%; }
             .page { padding: 15px; }
+            .warning-screen { display: none !important; }
         }
     </style>
 </head>
@@ -164,6 +211,13 @@
     <div id="splash-screen" class="splash-screen">
         <h1>Ofest Bank</h1>
         <p id="welcome-text"></p>
+    </div>
+    <div id="warning-screen" class="warning-screen">
+        <div class="warning-content">
+            <h2>Рекомендация</h2>
+            <p>Мы рекомендуем использовать приложение на телефоне для лучшего опыта. Продолжить на компьютере?</p>
+            <button onclick="continueOnDesktop()">ОК</button>
+        </div>
     </div>
     <div id="dashboard" class="page">
         <h2>Личный кабинет</h2>
@@ -212,11 +266,25 @@
         document.getElementById('welcome-text').innerText = 
             user ? `Привет, ${user.first_name}!` : 'Привет, гость!';
 
-        // Показ splash screen и переход в личный кабинет
+        // Проверка на десктоп
+        const isDesktop = window.innerWidth > 768 || /Macintosh|Windows|Linux/.test(navigator.userAgent);
+        const warningScreen = document.getElementById('warning-screen');
+
+        // Показ splash screen и, если десктоп, warning screen
         setTimeout(() => {
             document.getElementById('splash-screen').style.display = 'none';
-            showPage('dashboard');
+            if (isDesktop) {
+                warningScreen.style.display = 'flex';
+            } else {
+                showPage('dashboard');
+            }
         }, 2000);
+
+        // Переход с warning screen
+        function continueOnDesktop() {
+            warningScreen.style.display = 'none';
+            showPage('dashboard');
+        }
 
         // Загрузка данных из localStorage
         const balance = localStorage.getItem('ofest_balance') || '$0.00';
