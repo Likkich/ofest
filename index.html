@@ -1,94 +1,148 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Ofest Music</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #000;
-      color: white;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      text-align: center;
-      overflow: hidden;
-    }
-    #cover {
-      width: 80%;
-      max-width: 300px;
-      border-radius: 15px;
-      box-shadow: 0 0 20px rgba(255, 255, 255, 0.2);
-      margin-bottom: 20px;
-    }
-    #title {
-      font-size: 20px;
-      font-weight: bold;
-      margin-bottom: 5px;
-    }
-    #artist {
-      font-size: 16px;
-      margin-bottom: 20px;
-      color: #ccc;
-    }
-    #player {
-      margin-bottom: 20px;
-    }
-    button {
-      padding: 10px 20px;
-      background: #1db954;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #1aa34a;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ofest Bank</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background: #f4f4f9;
+            color: #333;
+        }
+        h1 {
+            text-align: center;
+            color: #1a73e8;
+        }
+        .card {
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 8px;
+            background: white;
+        }
+        .converter {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+        button {
+            padding: 10px 20px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1557b0;
+        }
+        input, select {
+            padding: 8px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+            width: calc(100% - 18px);
+        }
+        .status {
+            margin-top: 20px;
+            padding: 10px;
+            background: #e8f0fe;
+            border-radius: 5px;
+        }
+    </style>
 </head>
 <body>
-  <img id="cover" src="" alt="Обложка">
-  <div id="title"></div>
-  <div id="artist"></div>
-  <audio id="player" controls autoplay></audio>
-  <button id="full">Слушать полностью</button>
+    <h1>Ofest Bank</h1>
+    <div id="user-info"></div>
+    <h2>Доступные карты</h2>
+    <div id="card-list"></div>
+    <button onclick="applyForCard()">Подать заявку на карту</button>
+    <div id="application-status" class="status"></div>
+    <div class="converter">
+        <h3>Конвертер валют</h3>
+        <input type="number" id="amount" placeholder="Введите сумму">
+        <select id="currency">
+            <option value="USD">USD</option>
+            <option value="EUR">EUR</option>
+            <option value="CNY">CNY</option>
+        </select>
+        <button onclick="convertCurrency()">Конвертировать</button>
+        <p id="conversion-result"></p>
+    </div>
 
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.ready();
-    tg.expand();
+    <script>
+        // Инициализация Telegram Web App
+        const tg = window.Telegram.WebApp;
+        tg.ready();
 
-    const cover = document.getElementById('cover');
-    const title = document.getElementById('title');
-    const artist = document.getElementById('artist');
-    const player = document.getElementById('player');
-    const fullBtn = document.getElementById('full');
+        // Получение данных пользователя
+        const user = tg.initDataUnsafe.user;
+        document.getElementById('user-info').innerText = 
+            user ? `Привет, ${user.first_name}!` : 'Привет, гость!';
 
-    async function getRandomTrack() {
-      const response = await fetch('https://api.deezer.com/search?q=lofi&limit=10');
-      const proxy = await fetch(`https://cors-anywhere.herokuapp.com/https://api.deezer.com/search?q=lofi&limit=10`);
-      const data = await fetch('/api/deezer?q=lofi&limit=10').then(res => res.json());
-      const tracks = data.data;
-      const track = tracks[Math.floor(Math.random() * tracks.length)];
+        // Список карт (демо-данные)
+        const cards = [
+            { id: 1, name: 'Visa USD', currency: 'USD', description: 'Карта для покупок в США' },
+            { id: 2, name: 'Mastercard EUR', currency: 'EUR', description: 'Карта для расчетов в Европе' },
+            { id: 3, name: 'UnionPay CNY', currency: 'CNY', description: 'Карта для расчетов в Китае' }
+        ];
 
-      title.textContent = track.title;
-      artist.textContent = track.artist.name;
-      cover.src = track.album.cover_big;
-      player.src = track.preview;
-      fullBtn.onclick = () => window.open(track.link, '_blank');
-    }
+        // Отображение карт
+        const cardList = document.getElementById('card-list');
+        cards.forEach(card => {
+            const cardDiv = document.createElement('div');
+            cardDiv.className = 'card';
+            cardDiv.innerHTML = `<strong>${card.name}</strong><br>${card.description}<br>Валюта: ${card.currency}`;
+            cardList.appendChild(cardDiv);
+        });
 
-    getRandomTrack();
+        // Проверка статуса заявки из localStorage
+        const statusDiv = document.getElementById('application-status');
+        const savedApplication = localStorage.getItem('ofest_application');
+        if (savedApplication) {
+            statusDiv.innerText = `Статус заявки: ${savedApplication}`;
+        }
 
-    tg.MainButton.setText("Закрыть").show().onClick(() => tg.close());
-  </script>
+        // Функция подачи заявки
+        function applyForCard() {
+            tg.showPopup({
+                title: 'Заявка на карту',
+                message: 'Выберите валюту карты:',
+                buttons: [
+                    { id: 'usd', type: 'default', text: 'USD' },
+                    { id: 'eur', type: 'default', text: 'EUR' },
+                    { id: 'cny', type: 'default', text: 'CNY' },
+                    { type: 'cancel', text: 'Отмена' }
+                ]
+            }, (buttonId) => {
+                if (buttonId) {
+                    const statusMessage = `Заявка на карту ${buttonId.toUpperCase()} принята! Ожидайте обработки.`;
+                    localStorage.setItem('ofest_application', statusMessage);
+                    statusDiv.innerText = statusMessage;
+                    tg.showAlert(statusMessage);
+                }
+            });
+        }
+
+        // Конвертер валют (фиктивные курсы)
+        function convertCurrency() {
+            const amount = document.getElementById('amount').value;
+            const currency = document.getElementById('currency').value;
+            const rates = { USD: 1, EUR: 0.85, CNY: 7.2 }; // Фиктивные курсы
+            if (amount && !isNaN(amount)) {
+                const result = amount / rates[currency];
+                document.getElementById('conversion-result').innerText = 
+                    `${amount} ${currency} = ${result.toFixed(2)} USD`;
+            } else {
+                tg.showAlert('Пожалуйста, введите корректную сумму');
+            }
+        }
+    </script>
 </body>
 </html>
