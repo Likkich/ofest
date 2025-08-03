@@ -267,7 +267,7 @@
             user ? `Привет, ${user.first_name}!` : 'Привет, гость!';
 
         // Проверка на десктоп
-        const isDesktop = window.innerWidth > 768 || /Macintosh|Windows|Linux/.test(navigator.userAgent);
+        const isDesktop = /Macintosh|Windows|Linux/.test(navigator.userAgent);
         const warningScreen = document.getElementById('warning-screen');
 
         // Показ splash screen и, если десктоп, warning screen
